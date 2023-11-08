@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SRS Cloud</title>
+    <!-- https://github.com/sensorsdata/sa-sdk-javascript/releases/tag/v1.25.7 -->
+    <script charset="UTF-8" src="./js/sensorsdata.min.js"></script>
+    <script charset="UTF-8">
+        var sensors = window['sensorsDataAnalytic201505'];
+        sensors.init({
+            server_url: 'https://sc-rp.tencentcloud.com:8106/sa?project=production',
+            cross_subdomain:false,
+            heatmap:{clickmap:'default', scroll_notice_map:'default'},
+            is_track_single_page:true,
+            use_client_time:true,
+            send_type:'beacon'
+        });
+        sensors.quick('autoTrack');
+    </script>
+</head>
+<body>
+    <p>Redirecting to <a href="javasript:void(0);" id="link">cloud service</a> in <span id="clock">some</span> ms ...</p>
+    <img src='//ossrs.net/gif/v1/sls.gif?site=srsplus.cloud&path=/stat{{.Target}}'/>
+</body>
+<script type="text/javascript">
+    let timeout = 600;
+    const clock = document.getElementById("clock");
+    clock.innerText = timeout;
+
+    let redirect = null;
+    [{path: '/trtc/', host: 'https://trtc.io'}].map((e) => {
+        if (window.location.pathname.indexOf(e.path) === 0) {
+            redirect = e.host + window.location.pathname.replace(e.path, '/') + window.location.search;
+        }
+    });
+    if (redirect) {
+        document.getElementById('link').attributes['href'].value = redirect;
+    }
+
+    // For test only.
+    const noRedirect = window.location.href.indexOf('redirect=0') >= 0;
+
+    const interval = 100;
+    window.addEventListener("load", function() {
+        const timer = setInterval(function(){
+            timeout -= interval;
+            clock.innerText = timeout;
+            if (timeout <= 0) {
+                clearInterval(timer);
+                if (redirect && !noRedirect) window.location.href = redirect;
+            }
+        }, interval);
+    });
+</script>
+</html>
