@@ -1,4 +1,4 @@
-name: "Release EN version"
+name: "Release SRS cloud statistic"
 
 on:
   push:
@@ -55,6 +55,9 @@ jobs:
         run: |
           echo "SRS_TAG=${{ needs.envs.outputs.SRS_TAG }}" >> $GITHUB_ENV
           echo "SRS_MAJOR=${{ needs.envs.outputs.SRS_MAJOR }}" >> $GITHUB_ENV
+      # Git checkout
+      - name: Checkout repository
+        uses: actions/checkout@v2
       - name: Login docker hub
         uses: docker/login-action@v1
         with:
@@ -97,7 +100,7 @@ jobs:
             cat << END > /root/restart_cloud-statistic.sh
               docker pull ossrs/cloud-statistic:$SRS_MAJOR
               docker rm -f cloud-statistic || sleep 1
-              docker run -d -it --restart always --privileged --name cloud-statistic -p 8107:80 \\
+              docker run -d -it --restart always --privileged --name cloud-statistic -p 2025:2025 \\
                 --log-driver=json-file --log-opt=max-size=500m --log-opt=max-file=3 \\
                 ossrs/cloud-statistic:$SRS_MAJOR
             END
