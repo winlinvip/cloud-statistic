@@ -20,14 +20,12 @@ jobs:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       # Generate variables like:
       #   SRS_DROPLET_EIP=1.2.3.4
-      #   SRS_DROPLET_PIP=1.2.3.4
       - name: Build droplet variables
         run: |
-          doctl compute droplet list --format Name,Region,Status,VCPUs,Memory
-          SRS_DROPLET_EIP=$(doctl compute droplet get ossrs --format PublicIPv4 --no-header)
-          SRS_DROPLET_PIP=$(doctl compute droplet get ossrs --format PrivateIPv4 --no-header)
+          SRS_DROPLET_EIP=$(dig +short ossrs.net)
           echo "SRS_DROPLET_EIP=$SRS_DROPLET_EIP" >> $GITHUB_ENV
-          echo "SRS_DROPLET_PIP=$SRS_DROPLET_PIP" >> $GITHUB_ENV
+          SRS_DROPLET_EIP2=$(dig +short ossrs.io)
+          echo "SRS_DROPLET_EIP2=$SRS_DROPLET_EIP2" >> $GITHUB_ENV
       # The github.ref is, for example, refs/tags/v1.0.52
       # Generate variables like:
       #   SRS_TAG=v1.0.52
@@ -41,7 +39,7 @@ jobs:
           echo "SRS_MAJOR=$SRS_MAJOR" >> $GITHUB_ENV
     outputs:
       SRS_DROPLET_EIP: ${{ env.SRS_DROPLET_EIP }}
-      SRS_DROPLET_PIP: ${{ env.SRS_DROPLET_PIP }}
+      SRS_DROPLET_EIP2: ${{ env.SRS_DROPLET_EIP2 }}
       SRS_TAG: ${{ env.SRS_TAG }}
       SRS_MAJOR: ${{ env.SRS_MAJOR }}
 
@@ -98,7 +96,7 @@ jobs:
             registry.cn-hangzhou.aliyuncs.com/ossrs/cloud-statistic:$SRS_MAJOR
 
   deploy:
-    name: deploy
+    name: deploy ossrs.net
     runs-on: ubuntu-20.04
     needs:
       - envs
@@ -110,12 +108,53 @@ jobs:
           echo "SRS_TAG=${{ needs.envs.outputs.SRS_TAG }}" >> $GITHUB_ENV
           echo "SRS_MAJOR=${{ needs.envs.outputs.SRS_MAJOR }}" >> $GITHUB_ENV
           echo "SRS_DROPLET_EIP=${{ needs.envs.outputs.SRS_DROPLET_EIP }}" >> $GITHUB_ENV
-          echo "SRS_DROPLET_PIP=${{ needs.envs.outputs.SRS_DROPLET_PIP }}" >> $GITHUB_ENV
       # Execute command in a ssh, because ufw limit the rate.
       - name: Restart the containers
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.SRS_DROPLET_EIP }}
+          username: root
+          key: ${{ secrets.DIGITALOCEAN_SSHKEY }}
+          port: 22
+          envs: SRS_TAG,SRS_MAJOR
+          script: |
+            #
+            ufw allow 2025
+            #
+            # Restart SRS cloud statistic
+            cat << END > /root/restart_cloud-statistic.sh
+              docker pull ossrs/cloud-statistic:$SRS_MAJOR
+              docker rm -f cloud-statistic || sleep 1
+              docker run -d -it --restart always --privileged --name cloud-statistic -p 2025:2025 \\
+                --log-driver=json-file --log-opt=max-size=500m --log-opt=max-file=3 \\
+                ossrs/cloud-statistic:$SRS_MAJOR
+            END
+            bash /root/restart_cloud-statistic.sh
+            #
+            # Cleanup old docker images.
+            for image in $(docker images |grep '<none>' |awk '{print $3}'); do
+              docker rmi -f $image
+              echo "Remove image $image, r0=$?"
+            done
+
+  deploy2:
+    name: deploy ossrs.io
+    runs-on: ubuntu-20.04
+    needs:
+      - envs
+      - docker
+      - aliyun
+    steps:
+      - name: Covert output to env
+        run: |
+          echo "SRS_TAG=${{ needs.envs.outputs.SRS_TAG }}" >> $GITHUB_ENV
+          echo "SRS_MAJOR=${{ needs.envs.outputs.SRS_MAJOR }}" >> $GITHUB_ENV
+          echo "SRS_DROPLET_EIP2=${{ needs.envs.outputs.SRS_DROPLET_EIP2 }}" >> $GITHUB_ENV
+      # Execute command in a ssh, because ufw limit the rate.
+      - name: Restart the containers
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SRS_DROPLET_EIP2 }}
           username: root
           key: ${{ secrets.DIGITALOCEAN_SSHKEY }}
           port: 22
