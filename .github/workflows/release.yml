@@ -70,12 +70,40 @@ jobs:
           docker tag ossrs/cloud-statistic:$SRS_TAG ossrs/cloud-statistic:$SRS_MAJOR
           docker push --all-tags ossrs/cloud-statistic
 
+  aliyun:
+    name: aliyun-hub
+    runs-on: ubuntu-20.04
+    needs:
+      - envs
+      - docker
+    steps:
+      - name: Covert output to env
+        run: |
+          echo "SRS_TAG=${{ needs.envs.outputs.SRS_TAG }}" >> $GITHUB_ENV
+          echo "SRS_MAJOR=${{ needs.envs.outputs.SRS_MAJOR }}" >> $GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Login docker hub
+        uses: docker/login-action@v1
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: "${{ secrets.ACR_USERNAME }}"
+          password: "${{ secrets.ACR_PASSWORD }}"
+      - name: Docker copy images
+        uses: akhilerm/tag-push-action@v2.1.0
+        with:
+          src: ossrs/cloud-statistic:$SRS_TAG
+          dst: |
+            registry.cn-hangzhou.aliyuncs.com/ossrs/cloud-statistic:$SRS_TAG
+            registry.cn-hangzhou.aliyuncs.com/ossrs/cloud-statistic:$SRS_MAJOR
+
   deploy:
     name: deploy
     runs-on: ubuntu-20.04
     needs:
       - envs
       - docker
+      - aliyun
     steps:
       - name: Covert output to env
         run: |
