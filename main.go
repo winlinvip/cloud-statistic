@@ -32,18 +32,28 @@ func main() {
 			return
 		}
 
-		if r.URL.RawQuery == "" {
-			http.Error(w, "Not found", http.StatusNotFound)
-			return
-		}
-
 		w.Header().Set("Content-Type", "text/html")
 		w.Header().Set("Cache-Control", "no-cache")
 
 		logger.Tf(ctx, "Handle %v", r.URL.RequestURI())
 
-		tmpl := template.New("index.tmpl.html")
-		tmpl = template.Must(tmpl.ParseFiles("index.tmpl.html"))
+		var tmpl *template.Template
+		if strings.HasPrefix(r.URL.Path, "/trtc/") {
+			if r.URL.RawQuery == "" {
+				http.Error(w, "Not found", http.StatusNotFound)
+				return
+			}
+
+			tmpl = template.New("trtc.tmpl.html")
+			tmpl = template.Must(tmpl.ParseFiles("trtc.tmpl.html"))
+		} else if strings.HasPrefix(r.URL.Path, "/gpt/") {
+			tmpl = template.New("gpt.tmpl.html")
+			tmpl = template.Must(tmpl.ParseFiles("gpt.tmpl.html"))
+		} else {
+			http.Error(w, fmt.Sprintf("No template for %v", r.URL.Path), http.StatusNotFound)
+			return
+		}
+
 		tmpl.Execute(w, &struct {
 			Target string
 		}{

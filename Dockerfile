@@ -6,7 +6,7 @@ RUN go build -mod vendor .
 RUN mkdir -p  /usr/local/cloud-statistic
 RUN cp cloud-statistic /usr/local/cloud-statistic/app
 RUN cp -r static /usr/local/cloud-statistic/static
-RUN cp index.tmpl.html /usr/local/cloud-statistic/index.tmpl.html
+RUN cp *.tmpl.html /usr/local/cloud-statistic/
 
 FROM ubuntu:focal as dist
 
