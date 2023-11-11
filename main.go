@@ -54,10 +54,20 @@ func main() {
 			return
 		}
 
+		host := r.Host
+		if strings.Contains(host, "localhost") {
+			host = "ossrs.net"
+		}
+		if !strings.Contains(host, "ossrs.net") && !strings.Contains(host, "ossrs.io") {
+			host = "ossrs.net"
+		}
+
 		tmpl.Execute(w, &struct {
 			Target string
+			Host   string
 		}{
 			Target: r.URL.Path,
+			Host:   host,
 		})
 	})
 
