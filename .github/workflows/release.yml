@@ -13,11 +13,6 @@ jobs:
       # Git checkout
       - name: Checkout repository
         uses: actions/checkout@v3
-      # DigitalOcean droplet
-      - name: Install doctl
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       # Generate variables like:
       #   SRS_DROPLET_EIP=1.2.3.4
       - name: Build droplet variables
