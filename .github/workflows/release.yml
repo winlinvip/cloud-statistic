@@ -160,6 +160,7 @@ jobs:
             #
             # Restart SRS cloud statistic
             cat << END > /root/restart_cloud-statistic.sh
+              # See https://github.com/winlinvip/cloud-statistic
               docker pull ossrs/cloud-statistic:$SRS_MAJOR
               docker rm -f cloud-statistic || sleep 1
               docker run -d -it --restart always --privileged --name cloud-statistic -p 2025:2025 \\
